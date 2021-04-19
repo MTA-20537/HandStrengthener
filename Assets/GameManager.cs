@@ -108,10 +108,10 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private float interTrialIntervalSeconds = 4.5f;
     [SerializeField]
-    private float inputWindowSeconds = 1f;
+    public float inputWindowSeconds = 1f;
     private float inputWindowTimer = 0.0f;
     private float interTrialTimer = 0.0f;
-    private InputWindowState inputWindow = InputWindowState.Closed;
+    public InputWindowState inputWindow = InputWindowState.Closed;
     private int inputIndex = 0;
 
     private GameState gameState = GameState.Stopped;
