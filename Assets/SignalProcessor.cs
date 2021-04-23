@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System;
+using UnityEngine;
 
 /*public struct BCIOutput
 {
@@ -55,7 +57,12 @@ public static class SignalProcessor
     public static bool[] ProcessAll(List<float> data)
     {
         SignalProcessor.isProcessed = true;
-        return new bool[] { ProcessHighestRecordedValueTrigger(data), ProcessThresholdValueFrequencyTrigger(data) };
+        return new bool[] 
+        { 
+            ProcessHighestRecordedValueTrigger(data), 
+            ProcessThresholdValueFrequencyTrigger(data), 
+            ProcessSlope(data) 
+        };
     }
 
     public static bool[] ProcessAllOnce(List<float> data)
@@ -92,6 +99,31 @@ public static class SignalProcessor
         float percentage = (frequency / 100) * data.Count;
         return percentage >= percentageThreshold;
     }
+
+    public static bool ProcessSlope(List<float> data)
+    {
+        float valueThreshold = 0.002f;
+        float peakValue = data[0];
+        float peakIndex = 0;
+        for(int i = 0; i<data.Count; i++)
+        {
+            if (data[i] > peakValue) 
+            { 
+                peakValue = data[i];
+                peakIndex = i;
+
+            }
+        }
+        float a = (peakValue - data[0]) / (peakIndex);
+        return a > valueThreshold;
+    }
+
+    public static bool ProcessPeakAmount(List<float> data) 
+    {
+        return false;
+    }
+
+
 
     /*public class HighestRecordedValueTrigger : BCITrigger
     {
