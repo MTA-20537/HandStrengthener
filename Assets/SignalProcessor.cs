@@ -57,11 +57,12 @@ public static class SignalProcessor
     public static bool[] ProcessAll(List<float> data)
     {
         SignalProcessor.isProcessed = true;
-        return new bool[] 
-        { 
-            ProcessHighestRecordedValueTrigger(data), 
-            ProcessThresholdValueFrequencyTrigger(data), 
-            ProcessSlope(data) 
+        return new bool[]
+        {
+            ProcessHighestRecordedValueTrigger(data),
+            ProcessThresholdValueFrequencyTrigger(data),
+            ProcessSlope(data),
+            ProcessPeakAmount(data)
         };
     }
 
@@ -120,7 +121,26 @@ public static class SignalProcessor
 
     public static bool ProcessPeakAmount(List<float> data) 
     {
-        return false;
+        int kernelSize = 10;
+        int operations = (int) Math.Ceiling((data.Count + 0f) % kernelSize);
+        float[] highestPeaks = new float[operations];
+        for (int i = 0; i < operations; i++)
+        {
+            for (int j = i; j < i + kernelSize || j < data.Count; j++)
+            {
+                if (highestPeaks[i] != 0.0 || highestPeaks[i] < data[j]) highestPeaks[i] = data[j];
+            }
+        }
+
+        float peakValueThreshold = 0.5f;
+        int numberOfPeaks = 0;
+        for (int i = 0; i < highestPeaks.Length; i++)
+        {
+            if (highestPeaks[i] >= peakValueThreshold) numberOfPeaks++;
+        }
+
+        int peakAmounThreshold = 5;
+        return numberOfPeaks >= peakAmounThreshold;
     }
 
 
