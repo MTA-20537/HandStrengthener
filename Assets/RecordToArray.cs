@@ -52,6 +52,9 @@ public class RecordToArray : MonoBehaviour
 
     public void InterpretData()
     {
+        BCIOutput result = SignalProcessor.Process(this.dataArray);
+        Debug.Log(result);
+
         dataArray.Clear();
     }
 }
