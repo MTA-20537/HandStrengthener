@@ -3,7 +3,9 @@ using UnityEngine;
 
 public class RecordToArray : MonoBehaviour
 {
+    public bool[] result;
     public List<float> dataArray;
+
     float bciValue;
     GameManager gameData;
 
@@ -52,9 +54,10 @@ public class RecordToArray : MonoBehaviour
 
     public void InterpretData()
     {
-        BCIOutput result = SignalProcessor.Process(this.dataArray);
-        Debug.Log(result);
-
-        dataArray.Clear();
+        if (this.dataArray.Count > 0)
+        {
+            this.result = SignalProcessor.ProcessAll(this.dataArray);
+            dataArray.Clear();
+        }
     }
 }
