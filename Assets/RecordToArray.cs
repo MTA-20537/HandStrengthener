@@ -22,11 +22,7 @@ public class RecordToArray : MonoBehaviour
     void Update()
     {
         this.result = sp.ProcessAllOnce(this.dataArray);
-
-        if (gameData.inputWindow == InputWindowState.Closed)
-        {
-            InterpretData();
-        }
+        if (this.dataArray.Count > 0 && sp.isProcessed) dataArray.Clear();
     }
 
     public void OnBCIEvent(float value)
@@ -55,8 +51,4 @@ public class RecordToArray : MonoBehaviour
 
     }*/
 
-    public void InterpretData()
-    {
-        if (this.dataArray.Count > 0) dataArray.Clear();
-    }
 }

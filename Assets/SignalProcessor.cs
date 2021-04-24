@@ -51,7 +51,7 @@ public class SignalProcessor : MonoBehaviour
 {
 
     //public static BCITrigger[] inputTriggers;
-    private bool isProcessed;
+    public bool isProcessed;
     private bool[] result;
 
     private GameManager gm;
@@ -68,6 +68,7 @@ public class SignalProcessor : MonoBehaviour
 
     private void Update()
     {
+        Debug.Log(gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed);
         if (gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed) this.Reset();
         previousInputWindowState = gm.inputWindow;
     }
@@ -85,7 +86,7 @@ public class SignalProcessor : MonoBehaviour
 
     public bool[] ProcessAllOnce(List<float> data)
     {
-        if (!this.isProcessed && gm.inputWindow == InputWindowState.Closed)
+        if (data.Count > 0 && !this.isProcessed && gm.inputWindow == InputWindowState.Closed)
         {
             this.result = ProcessAll(data);
             this.isProcessed = true;
