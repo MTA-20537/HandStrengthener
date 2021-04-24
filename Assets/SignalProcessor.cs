@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 /*public struct BCIOutput
 {
@@ -52,10 +53,14 @@ public class SignalProcessor : MonoBehaviour
 
     //public static BCITrigger[] inputTriggers;
     public bool isProcessed;
-    private bool[] result;
 
+    private bool[] result;
     private GameManager gm;
     private InputWindowState previousInputWindowState;
+
+    [Serializable]
+    public class OnSignalProcessedOnce : UnityEvent<bool[]> { }
+    public OnSignalProcessedOnce onSignalProcessedOnce;
 
     private void Start()
     {
@@ -68,7 +73,7 @@ public class SignalProcessor : MonoBehaviour
 
     private void Update()
     {
-        
+
         if (gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed) this.Reset();
         previousInputWindowState = gm.inputWindow;
     }
@@ -81,7 +86,7 @@ public class SignalProcessor : MonoBehaviour
             ProcessThresholdValueFrequencyTrigger(data),
             ProcessSlopeTrigger(data),
             ProcessPeakAmountTrigger(data),
-            processDistanceBetweenPeaks(data)
+            ProcessDistanceBetweenPeaksTrigger(data)
         };
     }
 
@@ -91,6 +96,7 @@ public class SignalProcessor : MonoBehaviour
         {
             this.result = ProcessAll(data);
             this.isProcessed = true;
+            this.onSignalProcessedOnce.Invoke(this.result);
             return this.result;
         }
         return this.result;
@@ -174,7 +180,7 @@ public class SignalProcessor : MonoBehaviour
         return numberOfPeaks >= peakAmountThreshold;
     }
 
-    public static bool processDistanceBetweenPeaks(List<float> data)
+    public static bool ProcessDistanceBetweenPeaksTrigger(List<float> data)
     {
         int kernelSize = 10;
         int operations = (int)Math.Ceiling((data.Count + 0f) / kernelSize);
