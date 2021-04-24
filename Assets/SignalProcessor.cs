@@ -68,7 +68,7 @@ public class SignalProcessor : MonoBehaviour
 
     private void Update()
     {
-        Debug.Log(gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed);
+        
         if (gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed) this.Reset();
         previousInputWindowState = gm.inputWindow;
     }
@@ -80,7 +80,8 @@ public class SignalProcessor : MonoBehaviour
             ProcessHighestRecordedValueTrigger(data),
             ProcessThresholdValueFrequencyTrigger(data),
             ProcessSlopeTrigger(data),
-            ProcessPeakAmountTrigger(data)
+            ProcessPeakAmountTrigger(data),
+            processDistanceBetweenPeaks(data)
         };
     }
 
@@ -104,11 +105,11 @@ public class SignalProcessor : MonoBehaviour
     {
         // not an input algo, just a helper method for finding peaks
         int kernelSize = 10;
-        int operations = (int)Math.Ceiling((data.Count + 0f) % kernelSize);
+        int operations = (int)Math.Ceiling((data.Count + 0f) / kernelSize);
         float[] highestPeaks = new float[operations];
         for (int i = 0; i < operations; i++)
         {
-            for (int j = i; j < i + kernelSize || j < data.Count; j++)
+            for (int j = i * kernelSize; j < i * kernelSize + kernelSize && j < data.Count; j++)
             {
                 if (highestPeaks[i] < data[j]) highestPeaks[i] = data[j];
             }
@@ -137,7 +138,6 @@ public class SignalProcessor : MonoBehaviour
             if (dataPoint >= valueThreshold) frequency++;
         }
         float percentage = ((frequency + 0.0f) / data.Count) * 100;
-        Debug.Log("percentage: " + percentage + ", percentageThreshold: " + percentageThreshold);
         return percentage >= percentageThreshold;
     }
 
@@ -174,6 +174,35 @@ public class SignalProcessor : MonoBehaviour
         return numberOfPeaks >= peakAmountThreshold;
     }
 
+    public static bool processDistanceBetweenPeaks(List<float> data)
+    {
+        int kernelSize = 10;
+        int operations = (int)Math.Ceiling((data.Count + 0f) / kernelSize);
+        float[] highestPeaks = new float[operations];
+        int[] highestPeaksIndex = new int[operations];
+        highestPeaksIndex[0] = 0;
+        for (int i = 0; i < operations; i++)
+        {
+            for (int j = i * kernelSize; j < i * kernelSize + kernelSize && j < data.Count; j++)
+            {
+                if (highestPeaks[i] < data[j])
+                {
+                    highestPeaks[i] = data[j];
+                    highestPeaksIndex[i] = j;
+                }
+            }
+        }
+        int total = 0;
+        int previousValue = highestPeaksIndex[0];
+        foreach (int val in highestPeaksIndex)
+        {
+            total += (val - previousValue);
+            previousValue = val;
+        }
+        float avg = total / highestPeaksIndex.Length;
+        float thresholdValue = 0.01f;
+        return avg < thresholdValue;
+    }
 
 
     /*public class HighestRecordedValueTrigger : BCITrigger
