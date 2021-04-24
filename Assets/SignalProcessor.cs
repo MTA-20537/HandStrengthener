@@ -47,39 +47,77 @@ using UnityEngine;
 
 }*/
 
-public static class SignalProcessor
+public class SignalProcessor : MonoBehaviour
 {
 
     //public static BCITrigger[] inputTriggers;
-    static private bool isProcessed = false;
-    static private bool[] result = new bool[] { };
+    private bool isProcessed;
+    private bool[] result;
+
+    private GameManager gm;
+    private InputWindowState previousInputWindowState;
+
+    private void Start()
+    {
+        this.isProcessed = false;
+        this.result = new bool[] { };
+
+        gm = GameObject.Find("GameManager").GetComponent<GameManager>();
+        previousInputWindowState = InputWindowState.Closed;
+    }
+
+    private void Update()
+    {
+        if (gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed) this.Reset();
+        previousInputWindowState = gm.inputWindow;
+    }
 
     public static bool[] ProcessAll(List<float> data)
     {
-        SignalProcessor.isProcessed = true;
         return new bool[]
         {
             ProcessHighestRecordedValueTrigger(data),
             ProcessThresholdValueFrequencyTrigger(data),
-            ProcessSlope(data),
-            ProcessPeakAmount(data)
+            ProcessSlopeTrigger(data),
+            ProcessPeakAmountTrigger(data)
         };
     }
 
-    public static bool[] ProcessAllOnce(List<float> data)
+    public bool[] ProcessAllOnce(List<float> data)
     {
-        if (!SignalProcessor.isProcessed) return SignalProcessor.ProcessAll(data);
-        return SignalProcessor.result;
+        if (!this.isProcessed && gm.inputWindow == InputWindowState.Closed)
+        {
+            this.result = ProcessAll(data);
+            this.isProcessed = true;
+            return this.result;
+        }
+        return this.result;
     }
 
-    public static void Reset()
+    public void Reset()
     {
-        SignalProcessor.isProcessed = false;
+        this.isProcessed = false;
+    }
+
+    private static float[] findPeaks(List<float> data)
+    {
+        // not an input algo, just a helper method for finding peaks
+        int kernelSize = 10;
+        int operations = (int)Math.Ceiling((data.Count + 0f) % kernelSize);
+        float[] highestPeaks = new float[operations];
+        for (int i = 0; i < operations; i++)
+        {
+            for (int j = i; j < i + kernelSize || j < data.Count; j++)
+            {
+                if (highestPeaks[i] < data[j]) highestPeaks[i] = data[j];
+            }
+        }
+        return highestPeaks;
     }
 
     public static bool ProcessHighestRecordedValueTrigger(List<float> data)
     {
-        float threshold = 0.8f;
+        float threshold = 0.7f;
         float highestValue = data[0];
         foreach (float dataPoint in data)
         {
@@ -90,20 +128,21 @@ public static class SignalProcessor
 
     public static bool ProcessThresholdValueFrequencyTrigger(List<float> data)
     {
-        float valueThreshold = 0.3f;
-        float percentageThreshold = 0.3f;
+        float valueThreshold = 0.45f;
+        int percentageThreshold = 45;
         int frequency = 0;
         foreach (float dataPoint in data)
         {
             if (dataPoint >= valueThreshold) frequency++;
         }
-        float percentage = (frequency / 100) * data.Count;
+        float percentage = ((frequency + 0.0f) / data.Count) * 100;
+        Debug.Log("percentage: " + percentage + ", percentageThreshold: " + percentageThreshold);
         return percentage >= percentageThreshold;
     }
 
-    public static bool ProcessSlope(List<float> data)
+    public static bool ProcessSlopeTrigger(List<float> data)
     {
-        float valueThreshold = 0.002f;
+        float valueThreshold = 0.003f;
         float peakValue = data[0];
         float peakIndex = 0;
         for(int i = 0; i<data.Count; i++)
@@ -119,28 +158,19 @@ public static class SignalProcessor
         return a > valueThreshold;
     }
 
-    public static bool ProcessPeakAmount(List<float> data) 
+    public static bool ProcessPeakAmountTrigger(List<float> data) 
     {
-        int kernelSize = 10;
-        int operations = (int) Math.Ceiling((data.Count + 0f) % kernelSize);
-        float[] highestPeaks = new float[operations];
-        for (int i = 0; i < operations; i++)
-        {
-            for (int j = i; j < i + kernelSize || j < data.Count; j++)
-            {
-                if (highestPeaks[i] != 0.0 || highestPeaks[i] < data[j]) highestPeaks[i] = data[j];
-            }
-        }
+        float[] highestPeaks = findPeaks(data);
 
-        float peakValueThreshold = 0.5f;
+        float peakValueThreshold = 0.4f;
         int numberOfPeaks = 0;
         for (int i = 0; i < highestPeaks.Length; i++)
         {
             if (highestPeaks[i] >= peakValueThreshold) numberOfPeaks++;
         }
 
-        int peakAmounThreshold = 5;
-        return numberOfPeaks >= peakAmounThreshold;
+        int peakAmountThreshold = 4;
+        return numberOfPeaks >= peakAmountThreshold;
     }
 
 

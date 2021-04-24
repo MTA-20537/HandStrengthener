@@ -8,18 +8,21 @@ public class RecordToArray : MonoBehaviour
 
     float bciValue;
     GameManager gameData;
+    SignalProcessor sp;
 
     // Start is called before the first frame update
     void Start()
     {
         gameData = GameObject.Find("GameManager").GetComponent<GameManager>();
+        sp = GameObject.Find("GameManager").GetComponent<SignalProcessor>();
         dataArray = new List<float>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        //recordToArray();
+        this.result = sp.ProcessAllOnce(this.dataArray);
+
         if (gameData.inputWindow == InputWindowState.Closed)
         {
             InterpretData();
@@ -54,10 +57,6 @@ public class RecordToArray : MonoBehaviour
 
     public void InterpretData()
     {
-        if (this.dataArray.Count > 0)
-        {
-            this.result = SignalProcessor.ProcessAll(this.dataArray);
-            dataArray.Clear();
-        }
+        if (this.dataArray.Count > 0) dataArray.Clear();
     }
 }
