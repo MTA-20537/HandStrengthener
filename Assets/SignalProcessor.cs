@@ -206,7 +206,8 @@ public class SignalProcessor : MonoBehaviour
             previousValue = val;
         }
         float avg = total / highestPeaksIndex.Length;
-        float thresholdValue = 0.01f;
+        float thresholdValue = 8f;
+        //Debug.Log(avg);
         return avg < thresholdValue;
     }
 
