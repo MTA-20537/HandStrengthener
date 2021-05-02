@@ -7,8 +7,8 @@ public class RecordToArray : MonoBehaviour
     public bool[] result;
     public List<float> dataArray;
 
-    public  bool testing = true;
-    public  int numberOfMeasurementsDuringTesting = 80;
+    public bool testing = false;
+    public int numberOfMeasurementsDuringTesting = 80;
     
     private static List<float> testingMeasurements = new List<float> { };
 
@@ -29,7 +29,7 @@ public class RecordToArray : MonoBehaviour
     {
         if (testing && dataArray.Count >= numberOfMeasurementsDuringTesting)
         {
-            bool[] results = SignalProcessor.ProcessAll(this.dataArray);
+            bool[] results = sp.ProcessAll(this.dataArray);
             for (int i = 0; i < results.Length; i++)
             {
                 if (results[i]) testingResults[i]++;

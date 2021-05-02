@@ -50,9 +50,11 @@ using UnityEngine.Events;
 
 public class SignalProcessor : MonoBehaviour
 {
-
     //public static BCITrigger[] inputTriggers;
     public bool isProcessed;
+    public float inputThreshold;
+    private float benchmarkInputThreshold = 0.7f;  // TODO: find correct value for Rasmus...
+    private float thresholdRatio;
 
     private bool[] result;
     private GameManager gm;
@@ -67,18 +69,19 @@ public class SignalProcessor : MonoBehaviour
         this.isProcessed = false;
         this.result = new bool[] { };
 
+        this.thresholdRatio = this.inputThreshold / this.benchmarkInputThreshold;
+
         gm = GameObject.Find("GameManager").GetComponent<GameManager>();
         previousInputWindowState = InputWindowState.Closed;
     }
 
     private void Update()
     {
-
         if (gm.inputWindow == InputWindowState.Open && previousInputWindowState == InputWindowState.Closed) this.Reset();
         previousInputWindowState = gm.inputWindow;
     }
 
-    public static bool[] ProcessAll(List<float> data)
+    public bool[] ProcessAll(List<float> data)
     {
         return new bool[]
         {
@@ -107,7 +110,7 @@ public class SignalProcessor : MonoBehaviour
         this.isProcessed = false;
     }
 
-    private static float[] findPeaks(List<float> data)
+    private float[] findPeaks(List<float> data)
     {
         // not an input algo, just a helper method for finding peaks
         int kernelSize = 10;
@@ -123,9 +126,9 @@ public class SignalProcessor : MonoBehaviour
         return highestPeaks;
     }
 
-    public static bool ProcessHighestRecordedValueTrigger(List<float> data)
+    public bool ProcessHighestRecordedValueTrigger(List<float> data)
     {
-        float threshold = 0.7f;
+        float threshold = 0.7f * this.thresholdRatio;
         float highestValue = data[0];
         foreach (float dataPoint in data)
         {
@@ -134,9 +137,9 @@ public class SignalProcessor : MonoBehaviour
         return highestValue > threshold;
     }
 
-    public static bool ProcessThresholdValueFrequencyTrigger(List<float> data)
+    public bool ProcessThresholdValueFrequencyTrigger(List<float> data)
     {
-        float valueThreshold = 0.45f;
+        float valueThreshold = 0.45f * this.thresholdRatio;
         int percentageThreshold = 45;
         int frequency = 0;
         foreach (float dataPoint in data)
@@ -147,9 +150,9 @@ public class SignalProcessor : MonoBehaviour
         return percentage >= percentageThreshold;
     }
 
-    public static bool ProcessSlopeTrigger(List<float> data)
+    public bool ProcessSlopeTrigger(List<float> data)
     {
-        float valueThreshold = 0.003f;
+        float valueThreshold = 0.003f * this.thresholdRatio;
         float peakValue = data[0];
         float peakIndex = 0;
         for(int i = 0; i<data.Count; i++)
@@ -165,11 +168,11 @@ public class SignalProcessor : MonoBehaviour
         return a > valueThreshold;
     }
 
-    public static bool ProcessPeakAmountTrigger(List<float> data) 
+    public bool ProcessPeakAmountTrigger(List<float> data) 
     {
         float[] highestPeaks = findPeaks(data);
 
-        float peakValueThreshold = 0.4f;
+        float peakValueThreshold = 0.4f * this.thresholdRatio;
         int numberOfPeaks = 0;
         for (int i = 0; i < highestPeaks.Length; i++)
         {
@@ -180,7 +183,7 @@ public class SignalProcessor : MonoBehaviour
         return numberOfPeaks >= peakAmountThreshold;
     }
 
-    public static bool ProcessDistanceBetweenPeaksTrigger(List<float> data)
+    public bool ProcessDistanceBetweenPeaksTrigger(List<float> data)
     {
         int kernelSize = 10;
         int operations = (int)Math.Ceiling((data.Count + 0f) / kernelSize);
@@ -206,7 +209,7 @@ public class SignalProcessor : MonoBehaviour
             previousValue = val;
         }
         float avg = total / highestPeaksIndex.Length;
-        float thresholdValue = 8f;
+        float thresholdValue = 8f / this.thresholdRatio;
         //Debug.Log(avg);
         return avg < thresholdValue;
     }
