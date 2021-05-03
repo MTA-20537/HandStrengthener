@@ -51,9 +51,17 @@ using UnityEngine.Events;
 public class SignalProcessor : MonoBehaviour
 {
     //public static BCITrigger[] inputTriggers;
+
+    public bool useAdaptiveThreshold;
+    public float avgTriggersPerCycle;
+    private List<bool[]> resultsHistory;
+    private int resultsMemorySize = 10;
+    private float targetTriggersPerCycle = 1.5f;
+
     public bool isProcessed;
+
     public float inputThreshold;
-    private float benchmarkInputThreshold = 0.7f;  // TODO: find correct value for Rasmus...
+    private float benchmarkInputThreshold = 0.85f;
     private float thresholdRatio;
 
     private bool[] result;
@@ -66,6 +74,8 @@ public class SignalProcessor : MonoBehaviour
 
     private void Start()
     {
+        this.resultsHistory = new List<bool[]>();
+
         this.isProcessed = false;
         this.result = new bool[] { };
 
@@ -83,14 +93,31 @@ public class SignalProcessor : MonoBehaviour
 
     public bool[] ProcessAll(List<float> data)
     {
-        return new bool[]
+        // calculate threshold and trigger results
+        float threshold = this.getThreshold();
+        bool[] newResult = new bool[]
         {
-            ProcessHighestRecordedValueTrigger(data),
-            ProcessThresholdValueFrequencyTrigger(data),
-            ProcessSlopeTrigger(data),
-            ProcessPeakAmountTrigger(data),
-            ProcessDistanceBetweenPeaksTrigger(data)
+            ProcessHighestRecordedValueTrigger(     data, threshold),
+            ProcessThresholdValueFrequencyTrigger(  data, threshold),
+            ProcessSlopeTrigger(                    data, threshold),
+            ProcessPeakAmountTrigger(               data, threshold),
+            ProcessDistanceBetweenPeaksTrigger(     data, threshold)
         };
+
+        // append new results to memory (used for adaptive thresholding)
+        this.resultsHistory.Add(newResult);
+        if (this.resultsHistory.Count > this.resultsMemorySize) this.resultsHistory.RemoveAt(0);
+
+        // calculate the average triggers per cycle in memory, to be displayed on the Unity inspector, allowing for supervision during experiments
+        int totalTriggers = 0;
+        this.forEachTrigger((i, j, trigger, array) =>
+        {
+            if (trigger) totalTriggers++;
+        });
+        this.avgTriggersPerCycle = (totalTriggers + 0.0f) / this.resultsHistory.Count;
+
+        // return new trigger results
+        return newResult;
     }
 
     public bool[] ProcessAllOnce(List<float> data)
@@ -98,8 +125,10 @@ public class SignalProcessor : MonoBehaviour
         if (data.Count > 0 && !this.isProcessed && gm.inputWindow == InputWindowState.Closed)
         {
             this.result = ProcessAll(data);
-            this.isProcessed = true;
+
             this.onSignalProcessedOnce.Invoke(this.result);
+            this.isProcessed = true;
+
             return this.result;
         }
         return this.result;
@@ -108,6 +137,56 @@ public class SignalProcessor : MonoBehaviour
     public void Reset()
     {
         this.isProcessed = false;
+    }
+
+    public void forEachTrigger(Action<int, int, bool, List<bool[]>> invoke)
+    {
+        // apply given Action on every trigger of every cycle in memory
+        for (int i = 0; i < this.resultsHistory.Count; i++)
+        {
+            for (int j = 0; j < this.resultsHistory[i].Length; j++)
+            {
+                invoke(i, j, this.resultsHistory[i][j], this.resultsHistory);
+            }
+        }
+    }
+
+    private float getThreshold(int triggerIndex = 0)
+    {
+        // adaptive trigger/threshold implementation
+        // NOTE: currently triggerIndex is not being used, but it can be used in case we want to inforce predictable trigger variability between algos
+
+        // only adapt theshold when there's enough cycles for averages to make sense
+        if (this.useAdaptiveThreshold && this.resultsHistory.Count >= 1/*this.resultsMemorySize*/)
+        {
+            // find the number of triggers in the most recent cycle to act as a deccelerator
+            int mostRecentTriggers = 0;
+            this.forEachTrigger((i, j, trigger, array) =>
+            {
+                if (i == this.resultsHistory.Count - 1)  // isolate the most recent trigger cycle
+                {
+                    if (trigger) mostRecentTriggers++;
+                }
+            });
+
+            // the degree to which the treshold must be adjusted to achieve desired triggers per cycle
+            float newOptimalTriggerRatio = this.targetTriggersPerCycle / ((this.avgTriggersPerCycle + mostRecentTriggers) / 2);
+
+            /*Debug.Log("mostRecentTriggers: "      + mostRecentTriggers);
+            Debug.Log("avgTriggersPerCycle: "       + this.avgTriggersPerCycle);
+            Debug.Log("newOptimalTriggerRatio: "    + newOptimalTriggerRatio);*/
+
+            // update threshold if the required change is sufficiently large
+            if (newOptimalTriggerRatio > 1.5 || newOptimalTriggerRatio < 0.5)
+            {
+                float newThresholdRatio = (this.thresholdRatio / newOptimalTriggerRatio + this.thresholdRatio) / 2;  // weigh the most recent trigger results higher than the others
+                Debug.Log("New adaptive threshold set: " + this.thresholdRatio + " -> " + newThresholdRatio);
+                this.thresholdRatio = newThresholdRatio;
+            }
+        }
+
+        // return appropriate threshold ratio, used to convert individual threshold values in each algo
+        return this.thresholdRatio;
     }
 
     private float[] findPeaks(List<float> data)
@@ -126,9 +205,9 @@ public class SignalProcessor : MonoBehaviour
         return highestPeaks;
     }
 
-    public bool ProcessHighestRecordedValueTrigger(List<float> data)
+    public bool ProcessHighestRecordedValueTrigger(List<float> data, float globalThreshold)
     {
-        float threshold = 0.7f * this.thresholdRatio;
+        float threshold = 0.5f * globalThreshold;
         float highestValue = data[0];
         foreach (float dataPoint in data)
         {
@@ -137,10 +216,10 @@ public class SignalProcessor : MonoBehaviour
         return highestValue > threshold;
     }
 
-    public bool ProcessThresholdValueFrequencyTrigger(List<float> data)
+    public bool ProcessThresholdValueFrequencyTrigger(List<float> data, float globalThreshold)
     {
-        float valueThreshold = 0.45f * this.thresholdRatio;
-        int percentageThreshold = 45;
+        float valueThreshold = 0.4f * globalThreshold;
+        int percentageThreshold = 4;
         int frequency = 0;
         foreach (float dataPoint in data)
         {
@@ -150,9 +229,9 @@ public class SignalProcessor : MonoBehaviour
         return percentage >= percentageThreshold;
     }
 
-    public bool ProcessSlopeTrigger(List<float> data)
+    public bool ProcessSlopeTrigger(List<float> data, float globalThreshold)
     {
-        float valueThreshold = 0.003f * this.thresholdRatio;
+        float valueThreshold = 0.0048f * globalThreshold;
         float peakValue = data[0];
         float peakIndex = 0;
         for(int i = 0; i<data.Count; i++)
@@ -168,11 +247,11 @@ public class SignalProcessor : MonoBehaviour
         return a > valueThreshold;
     }
 
-    public bool ProcessPeakAmountTrigger(List<float> data) 
+    public bool ProcessPeakAmountTrigger(List<float> data, float globalThreshold) 
     {
         float[] highestPeaks = findPeaks(data);
 
-        float peakValueThreshold = 0.4f * this.thresholdRatio;
+        float peakValueThreshold = 0.36f * globalThreshold;
         int numberOfPeaks = 0;
         for (int i = 0; i < highestPeaks.Length; i++)
         {
@@ -183,7 +262,7 @@ public class SignalProcessor : MonoBehaviour
         return numberOfPeaks >= peakAmountThreshold;
     }
 
-    public bool ProcessDistanceBetweenPeaksTrigger(List<float> data)
+    public bool ProcessDistanceBetweenPeaksTrigger(List<float> data, float globalThreshold)
     {
         int kernelSize = 10;
         int operations = (int)Math.Ceiling((data.Count + 0f) / kernelSize);
@@ -209,7 +288,7 @@ public class SignalProcessor : MonoBehaviour
             previousValue = val;
         }
         float avg = total / highestPeaksIndex.Length;
-        float thresholdValue = 8f / this.thresholdRatio;
+        float thresholdValue = 8f / globalThreshold;
         //Debug.Log(avg);
         return avg < thresholdValue;
     }
