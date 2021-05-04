@@ -1,9 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class PlayerMovementScript : MonoBehaviour
 {
+    public RecordToArray recordToArrayRef;
+    public GameObject signalHand, dontmoveText, moveText, victoryText, scoreText, pointGuy, bgGroup;
+    public TMP_Text pointGuyText;
+
+    public int maxRuns = 16;
     public GameObject[] phaseNodes;
     public float[] phaseDurations;
     public const float sceneSizeX = 245.5f;
@@ -17,6 +24,10 @@ public class PlayerMovementScript : MonoBehaviour
     private int sourceNodeIndex, targetNodeIndex, prevSourceIndex;
     private bool isReady;
     private float moveSpeed;
+    private bool[] taskResults;
+    private float timer;
+    private int runCounter = -1;
+    private float scoreCounter;
     // Start is called before the first frame update
     void Start()
     {
@@ -29,14 +40,20 @@ public class PlayerMovementScript : MonoBehaviour
             sourceNode = phaseNodes[sourceNodeIndex];
             targetNode = phaseNodes[targetNodeIndex];
         }
+        signalHand.SetActive(false);
+        dontmoveText.SetActive(false);
+        moveText.SetActive(false);
+        victoryText.SetActive(false);
+        pointGuy.SetActive(false);
+        scoreText.SetActive(false);
     }
 
     // Update is called once per frame
     void Update()
     {
         if(transform.position.x>=targetNode.transform.position.x) {
-            Debug.Log("Player pos:" + transform.position.x + " Larger than target node " + targetNode.name + " pos " + targetNode.transform.position.x);
-            Debug.Log("target node " + targetNode.name + " is ready?: " +isReady);
+            //Debug.Log("Player pos:" + transform.position.x + " Larger than target node " + targetNode.name + " pos " + targetNode.transform.position.x);
+            //Debug.Log("target node " + targetNode.name + " is ready?: " +isReady);
             //if(sourceNodeIndex==4)
             //    isReady = false;
             if(isReady) {
@@ -48,39 +65,92 @@ public class PlayerMovementScript : MonoBehaviour
             //Add in mihai's thing on off
             //Background parallax
             case 0: //Inter-trial interval phase
-                Debug.Log("Intertrial Phase");
+                //Debug.Log("Intertrial Phase");
                 animator.speed = 1;
-                IsNotReady();
                 if(prevSourceIndex!=sourceNodeIndex) {
                     IsNotReady();
+                    runCounter++;
                 }
                 animator.SetTrigger("prep");
+                animator.SetBool("trick_hard",false);
+                animator.SetBool("trick_medium",false);
+                animator.SetBool("trick_easy",false);
+                animator.SetBool("CanTrick",true);
                 break;
             case 1: //Cue phase
-                Debug.Log("Cue Phase");
-                animator.SetTrigger("run");
-                animator.speed = 1/(phaseDurations[1] + phaseDurations[2]);
-                moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
+                //Debug.Log("Cue Phase");
+                if(runCounter<maxRuns) {
+                    animator.SetTrigger("run");
+
+                    animator.speed = 1/(phaseDurations[1]+phaseDurations[2]);
+                    moveSpeed = targetDistanceX/((phaseDurations[1]+phaseDurations[2])/2f);
+                } else {
+                    IsNotReady();
+                    victoryText.SetActive(true);
+                    scoreText.SetActive(true);
+                    scoreText.GetComponent<Text>().text = "Score:" + (Mathf.Round((scoreCounter/maxRuns) * 100)) / 100.0;
+                }
+                
                 break;
             case 2: //Prep phase
-                Debug.Log("Prep Phase");
-                moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
+                //Debug.Log("Prep Phase");
+
+                dontmoveText.SetActive(true);
+
+                animator.speed = 1/(phaseDurations[1]+phaseDurations[2]);
+                moveSpeed = targetDistanceX/((phaseDurations[1]+phaseDurations[2])/2f);
+
                 break;
             case 3: //Task phase
-                Debug.Log("Task Phase");
+                //Take input
+                //Debug.Log("Task Phase");
+                if(prevSourceIndex!=sourceNodeIndex) {
+                    animator.SetTrigger("rise");
+                    pointGuy.SetActive(true);
+                    MoveNode(pointGuy);
+                    MoveNode(bgGroup);
+                }
+
+                dontmoveText.SetActive(false);
+                moveText.SetActive(true);
+                signalHand.SetActive(true);
+
                 animator.speed = 1/phaseDurations[3];
-                animator.SetTrigger("rise");
                 moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
                 break;
             case 4: //Feedback phase
-                Debug.Log("Feedback Phase");
-                animator.speed = 1;
+                //Debug.Log("Feedback Phase");
+                if(prevSourceIndex!=sourceNodeIndex) {
+                    if(recordToArrayRef.result.Length>=6) {
+                        taskResults = new bool[] {recordToArrayRef.result[2],recordToArrayRef.result[3],recordToArrayRef.result[5]};
+                    } else {
+                        taskResults = new bool[] {false,false,false};
+                    }
+
+                    timer = Time.time;
+                    animator.SetTrigger("midair");
+                    pointGuyText.text = calculateScore(recordToArrayRef.result).ToString();
+                    scoreCounter+=calculateScore(recordToArrayRef.result);
+                }
+                float elapsedAnimationTime = (Time.time-timer)*animator.speed;
+                animator.SetBool("CanTrick",false);
+                if((elapsedAnimationTime>=0.37f)) {
+                        animator.SetBool("trick_hard",taskResults[2]);
+                } else if((elapsedAnimationTime>=0.18f)) {
+                        animator.SetBool("trick_medium",taskResults[1]);
+                } else if((elapsedAnimationTime>=0.0f)) {
+                        animator.SetBool("trick_easy",taskResults[0]);
+                }
                 animator.SetTrigger("midair");
+
+                moveText.SetActive(false);
+                signalHand.SetActive(false);
+                
+                animator.speed = 1/phaseDurations[4];
                 moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
-                //pole.transform.position = new Vector3(sourceNode.transform.position.x - (transform.position.x - sourceNode.transform.position.x),pole.transform.localPosition.y,pole.transform.localPosition.z);
                 break;
             default:
-                Debug.LogError("Target Node Out of range");
+                //Debug.LogError("Target Node Out of range");
                 break;
         }
         prevSourceIndex = sourceNodeIndex;
@@ -110,5 +180,15 @@ public class PlayerMovementScript : MonoBehaviour
     public void IsNotReady() {
         isReady = false;
         moveSpeed = 0;
+    }
+
+    float calculateScore(bool[] results) {
+        float score = 2.51f;
+        for(int i=0;i<results.Length;i++) {
+            if(results[i] && (i==2 || i==3 || i==5)) {
+                score+=2.51f;
+            }
+        }
+        return Mathf.Round(score);
     }
 }

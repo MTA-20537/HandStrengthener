@@ -134,6 +134,8 @@ public class GameManager : MonoBehaviour
     private LoggingManager loggingManager;
     private UrnModel urn;
 
+    private bool firstTimeWindowOpen = true;
+
     void Start()
     {
         loggingManager = GameObject.Find("LoggingManager").GetComponent<LoggingManager>();
@@ -141,6 +143,7 @@ public class GameManager : MonoBehaviour
         SetupMechanisms();
         SetupUrn();
         LogMeta();
+        RunGame();
     }
 
     private void SetupMechanisms() {
@@ -259,6 +262,10 @@ public class GameManager : MonoBehaviour
                 if (interTrialTimer > interTrialIntervalSeconds && currentTrial < trialsTotal) {
                     interTrialTimer = 0f;
                     inputWindow = InputWindowState.Open;
+                    if(firstTimeWindowOpen) {
+                        interTrialIntervalSeconds+=5;
+                        firstTimeWindowOpen = false;
+                    }
                     SetFabAlarmVariability();
                     onInputWindowChanged.Invoke(inputWindow);
                     LogEvent("InputWindowChange");
