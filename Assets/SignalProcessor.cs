@@ -103,7 +103,8 @@ public class SignalProcessor : MonoBehaviour
             ProcessThresholdValueFrequencyTrigger(  data, threshold),
             ProcessSlopeTrigger(                    data, threshold),
             ProcessPeakAmountTrigger(               data, threshold),
-            ProcessDistanceBetweenPeaksTrigger(     data, threshold)
+            ProcessDistanceBetweenPeaksTrigger(     data, threshold),
+            ProcessHighestRecordedValueTrigger(     data, threshold)    && ProcessPeakAmountTrigger(data, threshold)
         };
 
         // append new results to memory (used for adaptive thresholding)

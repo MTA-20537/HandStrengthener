@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class RecordToArray : MonoBehaviour
 {
-    public  int[] testingResults = new int[5];
+    public int[] testingResults = new int[6];
     public bool[] result;
     public List<float> dataArray;
 
