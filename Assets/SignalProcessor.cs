@@ -57,6 +57,7 @@ public class SignalProcessor : MonoBehaviour
     private List<bool[]> resultsHistory;
     private int resultsMemorySize = 10;
     private float targetTriggersPerCycle = 1.5f;
+    private List<float> thresholdHistory;
 
     public bool isProcessed;
 
@@ -75,6 +76,7 @@ public class SignalProcessor : MonoBehaviour
     private void Start()
     {
         this.resultsHistory = new List<bool[]>();
+        this.thresholdHistory = new List<float>();
 
         this.isProcessed = false;
         this.result = new bool[] { };
@@ -170,19 +172,34 @@ public class SignalProcessor : MonoBehaviour
             });
 
             // the degree to which the treshold must be adjusted to achieve desired triggers per cycle
-            float newOptimalTriggerRatio = this.targetTriggersPerCycle / ((this.avgTriggersPerCycle + mostRecentTriggers) / 2);
+            float newOptimalTriggerRatio = this.targetTriggersPerCycle / ((this.avgTriggersPerCycle + mostRecentTriggers) / 2);  // weigh the most recent trigger results higher than the others
 
             /*Debug.Log("mostRecentTriggers: "      + mostRecentTriggers);
             Debug.Log("avgTriggersPerCycle: "       + this.avgTriggersPerCycle);
             Debug.Log("newOptimalTriggerRatio: "    + newOptimalTriggerRatio);*/
 
             // update threshold if the required change is sufficiently large
-            if (newOptimalTriggerRatio > 1.5 || newOptimalTriggerRatio < 0.5)
+            if (newOptimalTriggerRatio > 1.5 || newOptimalTriggerRatio < 0.6)
             {
-                float newThresholdRatio = (this.thresholdRatio / newOptimalTriggerRatio + this.thresholdRatio) / 2;  // weigh the most recent trigger results higher than the others
-                Debug.Log("New adaptive threshold set: " + this.thresholdRatio + " -> " + newThresholdRatio);
+                float newThresholdRatio = (this.thresholdRatio / newOptimalTriggerRatio + this.thresholdRatio) / 2;
+                Debug.LogWarning("New adaptive threshold set (major correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)": " (harder)"));
                 this.thresholdRatio = newThresholdRatio;
             }
+            else if (this.thresholdHistory.Count >= 1)
+            {
+                float totalThresholdValues = 0f;
+                foreach (float threshold in this.thresholdHistory) totalThresholdValues += threshold;
+                float newThresholdRatio = ((totalThresholdValues / this.thresholdHistory.Count) + this.thresholdHistory[this.thresholdHistory.Count - 1]) / 2;
+                if (Mathf.Abs(this.thresholdRatio - newThresholdRatio) > 0.1)
+                {
+                    Debug.LogWarning("New adaptive threshold set (minor correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)" : " (harder)"));
+                    this.thresholdRatio = newThresholdRatio;
+                }
+            }
+
+            // update and trim threshold history
+            this.thresholdHistory.Add(this.thresholdRatio);
+            if (this.thresholdHistory.Count > this.resultsMemorySize) this.thresholdHistory.RemoveAt(0);
         }
 
         // return appropriate threshold ratio, used to convert individual threshold values in each algo
