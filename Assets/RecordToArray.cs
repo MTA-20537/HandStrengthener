@@ -3,11 +3,11 @@ using UnityEngine;
 
 public class RecordToArray : MonoBehaviour
 {
-    public int[] testingResults = new int[6];
+    public int[] testingResults = new int[7];
     public bool[] result;
     public List<float> dataArray;
 
-    public bool testing = false;
+    public bool ignoreInputWindow = false;
     public int numberOfMeasurementsDuringTesting = 80;
     
     private static List<float> testingMeasurements = new List<float> { };
@@ -27,7 +27,7 @@ public class RecordToArray : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (testing && dataArray.Count >= numberOfMeasurementsDuringTesting)
+        if (ignoreInputWindow && dataArray.Count >= numberOfMeasurementsDuringTesting)
         {
             bool[] results = sp.ProcessAll(this.dataArray);
             for (int i = 0; i < results.Length; i++)
@@ -36,7 +36,7 @@ public class RecordToArray : MonoBehaviour
             }
             this.dataArray.Clear();
         }
-        else if (!testing)
+        else if (!ignoreInputWindow)
         {
             this.result = sp.ProcessAllOnce(this.dataArray);
             if (this.dataArray.Count > 0 && sp.isProcessed) dataArray.Clear();
@@ -45,7 +45,7 @@ public class RecordToArray : MonoBehaviour
 
     public void OnBCIEvent(float value)
     {
-        if (testing || gameData.inputWindow == InputWindowState.Open)
+        if (ignoreInputWindow || gameData.inputWindow == InputWindowState.Open)
         {
             dataArray.Add(value);
         }

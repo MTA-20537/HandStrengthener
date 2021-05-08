@@ -104,7 +104,8 @@ public class SignalProcessor : MonoBehaviour
             ProcessSlopeTrigger(                    data, threshold),
             ProcessPeakAmountTrigger(               data, threshold),
             ProcessDistanceBetweenPeaksTrigger(     data, threshold),
-            ProcessHighestRecordedValueTrigger(     data, threshold)    && ProcessPeakAmountTrigger(data, threshold)
+            ProcessHighestRecordedValueTrigger(     data, threshold)    && ProcessPeakAmountTrigger(data, threshold),
+            ProcessSimpleThresholdTrigger(          data, threshold)
         };
 
         // append new results to memory (used for adaptive thresholding)
@@ -311,6 +312,12 @@ public class SignalProcessor : MonoBehaviour
         return avg < thresholdValue;
     }
 
+    public bool ProcessSimpleThresholdTrigger(List<float> data, float globalThreshold)
+    {
+        // NOTE: adaptive thresholding (globalThreshold) is ignored for this one...
+        foreach (float value in data) if (value >= this.inputThreshold) return true;
+        return false;
+    }
 
     /*public class HighestRecordedValueTrigger : BCITrigger
     {
