@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class PlayerMovementScript : MonoBehaviour
 {
     public RecordToArray recordToArrayRef;
     public GameObject signalHand, dontmoveText, moveText, victoryText, scoreText, pointGuy, bgGroup;
-    public TMP_Text pointGuyText;
+    public Text pointGuyText;
 
     public int maxRuns = 16;
     public GameObject[] phaseNodes;
@@ -28,11 +27,14 @@ public class PlayerMovementScript : MonoBehaviour
     private float timer;
     private int runCounter = -1;
     private float scoreCounter;
+    private bool isFirstRound;
     // Start is called before the first frame update
     void Start()
     {
         prevSourceIndex = 4;
         isReady = false;
+        isFirstRound = true;
+        taskResults = new bool[] {false,false,false};
         animator = gameObject.GetComponent<Animator>();
         sourceNodeIndex = 0;
         targetNodeIndex = 1;
@@ -76,6 +78,9 @@ public class PlayerMovementScript : MonoBehaviour
                 animator.SetBool("trick_medium",false);
                 animator.SetBool("trick_easy",false);
                 animator.SetBool("CanTrick",true);
+                if(isFirstRound)
+                    pointGuy.SetActive(false);
+                pointGuyText.text = calculateScore(taskResults).ToString();
                 break;
             case 1: //Cue phase
                 //Debug.Log("Cue Phase");
@@ -94,6 +99,10 @@ public class PlayerMovementScript : MonoBehaviour
                 break;
             case 2: //Prep phase
                 //Debug.Log("Prep Phase");
+                if(isFirstRound) {
+                    isFirstRound = false;
+                    pointGuy.SetActive(true);
+                }
 
                 dontmoveText.SetActive(true);
 
@@ -117,6 +126,8 @@ public class PlayerMovementScript : MonoBehaviour
 
                 animator.speed = 1/phaseDurations[3];
                 moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
+
+                pointGuyText.text = "";
                 break;
             case 4: //Feedback phase
                 //Debug.Log("Feedback Phase");
@@ -129,7 +140,6 @@ public class PlayerMovementScript : MonoBehaviour
 
                     timer = Time.time;
                     animator.SetTrigger("midair");
-                    pointGuyText.text = calculateScore(recordToArrayRef.result).ToString();
                     scoreCounter+=calculateScore(recordToArrayRef.result);
                 }
                 float elapsedAnimationTime = (Time.time-timer)*animator.speed;
@@ -150,7 +160,7 @@ public class PlayerMovementScript : MonoBehaviour
                 moveSpeed = targetDistanceX/phaseDurations[sourceNodeIndex];
                 break;
             default:
-                //Debug.LogError("Target Node Out of range");
+                Debug.LogError("Target Node Out of range");
                 break;
         }
         prevSourceIndex = sourceNodeIndex;
@@ -183,12 +193,11 @@ public class PlayerMovementScript : MonoBehaviour
     }
 
     float calculateScore(bool[] results) {
-        float score = 2.51f;
-        for(int i=0;i<results.Length;i++) {
-            if(results[i] && (i==2 || i==3 || i==5)) {
-                score+=2.51f;
-            }
-        }
-        return Mathf.Round(score);
+        float score = 1f;
+        if(results[0]) score+=2f;
+        if(results[1]) score+=3f;
+        if(results[2]) score+=4f;
+        //if motor imagery, then double points 
+        return score;
     }
 }
