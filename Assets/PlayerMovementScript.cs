@@ -14,6 +14,12 @@ public class PlayerMovementScript : MonoBehaviour
     public float[] phaseDurations;
     public const float sceneSizeX = 245.5f;
 
+    public ParticleSystem easyPart;
+    public ParticleSystem hardPart;
+
+    public AudioClip trickSound1;
+    public  AudioSource audioSource;
+
     public GameObject playerAvatar;
     public GameObject pole;
     public Animator animator;
@@ -28,6 +34,8 @@ public class PlayerMovementScript : MonoBehaviour
     private int runCounter = -1;
     private float scoreCounter;
     private bool isFirstRound;
+
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -147,9 +155,9 @@ public class PlayerMovementScript : MonoBehaviour
                 if((elapsedAnimationTime>=0.37f)) {
                         animator.SetBool("trick_hard",taskResults[2]);
                 } else if((elapsedAnimationTime>=0.18f)) {
-                        animator.SetBool("trick_medium",taskResults[1]);
+                        animator.SetBool("trick_medium",taskResults[1]);          
                 } else if((elapsedAnimationTime>=0.0f)) {
-                        animator.SetBool("trick_easy",taskResults[0]);
+                        animator.SetBool("trick_easy",taskResults[0]);                
                 }
                 animator.SetTrigger("midair");
 
@@ -199,5 +207,18 @@ public class PlayerMovementScript : MonoBehaviour
         if(results[2]) score+=4f;
         //if motor imagery, then double points 
         return score;
+    }
+
+    void playEasy()
+    {
+        easyPart.Play(true);
+        audioSource.PlayOneShot(trickSound1);
+    }
+
+    void playHard()
+    {
+        easyPart.Play(true);
+        hardPart.Play(true);
+        audioSource.PlayOneShot(trickSound1);
     }
 }

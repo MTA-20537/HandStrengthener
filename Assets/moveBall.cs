@@ -8,23 +8,19 @@ using System.Linq;
 
 public class moveBall : MonoBehaviour
 {
-
-    private OpenBCIInput controller;
+    float x = 0f;
     // Start is called before the first frame update
     void Start()
     {
-        controller = GameObject.Find("InputManager").GetComponent<OpenBCIInput>();
+      
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        transform.Translate(x*Time.deltaTime,0,0);
+        x++;
     }
 
-    public void OnBCIEvent(float value)
-    {
-        gameObject.transform.localPosition  = ( new Vector3 (0, 1 + 4 * value * Time.deltaTime, -11.54f));
-    }
 
 }
