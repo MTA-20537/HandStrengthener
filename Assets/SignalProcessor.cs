@@ -184,7 +184,7 @@ public class SignalProcessor : MonoBehaviour
             if (newOptimalTriggerRatio > 1.5 || newOptimalTriggerRatio < 0.6)
             {
                 float newThresholdRatio = (this.thresholdRatio / newOptimalTriggerRatio + this.thresholdRatio) / 2;
-                Debug.LogWarning("New adaptive threshold set (major correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)": " (harder)"));
+                Debug.Log("New adaptive threshold set (major correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)": " (harder)"));
                 this.thresholdRatio = newThresholdRatio;
             }
             else if (this.thresholdHistory.Count >= 1)
@@ -194,7 +194,7 @@ public class SignalProcessor : MonoBehaviour
                 float newThresholdRatio = ((totalThresholdValues / this.thresholdHistory.Count) + this.thresholdHistory[this.thresholdHistory.Count - 1]) / 2;
                 if (Mathf.Abs(this.thresholdRatio - newThresholdRatio) > 0.1)
                 {
-                    Debug.LogWarning("New adaptive threshold set (minor correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)" : " (harder)"));
+                    Debug.Log("New adaptive threshold set (minor correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)" : " (harder)"));
                     this.thresholdRatio = newThresholdRatio;
                 }
             }
