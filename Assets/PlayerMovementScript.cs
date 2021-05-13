@@ -5,8 +5,10 @@ using UnityEngine.UI;
 
 public class PlayerMovementScript : MonoBehaviour
 {
+    public bool isPointGuyOn = true;
     public RecordToArray recordToArrayRef;
-    public GameObject signalHand, dontmoveText, moveText, victoryText, scoreText, pointGuy, bgGroup;
+    public GameObject signalHand, dontmoveText, moveText, victoryText, scoreText,relaxText, pointGuy, bgGroup;
+    public Animator scoreMultiplierAnimator;
     public Text pointGuyText;
 
     public int maxRuns = 16;
@@ -42,7 +44,7 @@ public class PlayerMovementScript : MonoBehaviour
         prevSourceIndex = 4;
         isReady = false;
         isFirstRound = true;
-        taskResults = new bool[] {false,false,false};
+        taskResults = new bool[] {false,false,false,false};
         animator = gameObject.GetComponent<Animator>();
         sourceNodeIndex = 0;
         targetNodeIndex = 1;
@@ -56,6 +58,7 @@ public class PlayerMovementScript : MonoBehaviour
         victoryText.SetActive(false);
         pointGuy.SetActive(false);
         scoreText.SetActive(false);
+        relaxText.SetActive(false);
     }
 
     // Update is called once per frame
@@ -80,15 +83,20 @@ public class PlayerMovementScript : MonoBehaviour
                 if(prevSourceIndex!=sourceNodeIndex) {
                     IsNotReady();
                     runCounter++;
+                    animator.SetTrigger("prep");
+                    animator.SetBool("trick_hard",false);
+                    animator.SetBool("trick_medium",false);
+                    animator.SetBool("trick_easy",false);
+                    animator.SetBool("isLanding",false);
+                    animator.SetBool("CanTrick",true);
+                    if(taskResults[3]) 
+                        scoreMultiplierAnimator.SetTrigger("Move");
+                    if(isFirstRound)
+                        pointGuy.SetActive(false);
+                    pointGuyText.text = calculateScore(taskResults).ToString();
+                    relaxText.SetActive(true);
                 }
-                animator.SetTrigger("prep");
-                animator.SetBool("trick_hard",false);
-                animator.SetBool("trick_medium",false);
-                animator.SetBool("trick_easy",false);
-                animator.SetBool("CanTrick",true);
-                if(isFirstRound)
-                    pointGuy.SetActive(false);
-                pointGuyText.text = calculateScore(taskResults).ToString();
+                
                 break;
             case 1: //Cue phase
                 //Debug.Log("Cue Phase");
@@ -101,7 +109,7 @@ public class PlayerMovementScript : MonoBehaviour
                     IsNotReady();
                     victoryText.SetActive(true);
                     scoreText.SetActive(true);
-                    scoreText.GetComponent<Text>().text = "Score:" + (Mathf.Round((scoreCounter/maxRuns) * 100)) / 100.0;
+                    scoreText.GetComponent<Text>().text = "Score: " + (Mathf.Round((scoreCounter/maxRuns) * 100)) / 100.0;
                 }
                 
                 break;
@@ -109,9 +117,10 @@ public class PlayerMovementScript : MonoBehaviour
                 //Debug.Log("Prep Phase");
                 if(isFirstRound) {
                     isFirstRound = false;
-                    pointGuy.SetActive(true);
+                    if(isPointGuyOn)
+                        pointGuy.SetActive(true);
                 }
-
+                relaxText.SetActive(false);
                 dontmoveText.SetActive(true);
 
                 animator.speed = 1/(phaseDurations[1]+phaseDurations[2]);
@@ -141,23 +150,26 @@ public class PlayerMovementScript : MonoBehaviour
                 //Debug.Log("Feedback Phase");
                 if(prevSourceIndex!=sourceNodeIndex) {
                     if(recordToArrayRef.result.Length>=6) {
-                        taskResults = new bool[] {recordToArrayRef.result[2],recordToArrayRef.result[3],recordToArrayRef.result[5]};
+                        taskResults = new bool[] {recordToArrayRef.result[2],recordToArrayRef.result[3],recordToArrayRef.result[5],recordToArrayRef.result[6]};
                     } else {
-                        taskResults = new bool[] {false,false,false};
+                        taskResults = new bool[] {false,false,false,false};
                     }
 
                     timer = Time.time;
                     animator.SetTrigger("midair");
-                    scoreCounter+=calculateScore(recordToArrayRef.result);
+                    scoreCounter+=calculateScore(taskResults);
                 }
                 float elapsedAnimationTime = (Time.time-timer)*animator.speed;
                 animator.SetBool("CanTrick",false);
-                if((elapsedAnimationTime>=0.37f)) {
-                        animator.SetBool("trick_hard",taskResults[2]);
-                } else if((elapsedAnimationTime>=0.18f)) {
-                        animator.SetBool("trick_medium",taskResults[1]);          
+                if((elapsedAnimationTime>=0.3f)) {
+                    animator.SetBool("isLanding",true);
+                    animator.SetBool("wrongLanding",!taskResults[3]);
+                } else if((elapsedAnimationTime>=0.2f)) {
+                    animator.SetBool("trick_hard",taskResults[2]);
+                } else if((elapsedAnimationTime>=0.1f)) {
+                    animator.SetBool("trick_medium",taskResults[1]);          
                 } else if((elapsedAnimationTime>=0.0f)) {
-                        animator.SetBool("trick_easy",taskResults[0]);                
+                    animator.SetBool("trick_easy",taskResults[0]);                
                 }
                 animator.SetTrigger("midair");
 
@@ -202,9 +214,11 @@ public class PlayerMovementScript : MonoBehaviour
 
     float calculateScore(bool[] results) {
         float score = 1f;
+        Debug.Log(results);
         if(results[0]) score+=2f;
         if(results[1]) score+=3f;
         if(results[2]) score+=4f;
+        if(results[3]) score*=2f;
         //if motor imagery, then double points 
         return score;
     }
