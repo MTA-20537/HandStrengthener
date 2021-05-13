@@ -15,13 +15,44 @@ public class RecordToArray : MonoBehaviour
     float bciValue;
     GameManager gameData;
     SignalProcessor sp;
+    LoggingManager lm;
 
     // Start is called before the first frame update
     void Start()
     {
         gameData = GameObject.Find("GameManager").GetComponent<GameManager>();
         sp = GameObject.Find("GameManager").GetComponent<SignalProcessor>();
+        lm = GameObject.Find("LoggingManager").GetComponent<LoggingManager>();
         dataArray = new List<float>();
+
+        sp.onSignalProcessedOnce.AddListener(this.LogTriggers);
+    }
+
+    private void LogTriggers(bool[] triggers)
+    {
+        // only log the results if we are not in testing mode (ignoreInputWindow == true)
+        Dictionary<string, object> resultsDictionary = new Dictionary<string, object>() {
+            { "Trigger0", triggers[0] ? 1 : 0 },
+            { "Trigger1", triggers[1] ? 1 : 0 },
+            { "Trigger2", triggers[2] ? 1 : 0 },
+            { "Trigger3", triggers[3] ? 1 : 0 },
+            { "Trigger4", triggers[4] ? 1 : 0 },
+            { "Trigger5", triggers[5] ? 1 : 0 },
+            { "Trigger6", triggers[6] ? 1 : 0 }
+        };
+        lm.Log("Game", resultsDictionary);
+        //lm.Log("Game", "Trigger1", 1);
+
+        for (int i = 0; i < triggers.Length; i++) Debug.Log("Logged the following trigger at index " + i + " with value " + (triggers[i] ? 1 : 0));
+        //Debug.Log("Triggers logged!");
+        /*resultsDictionary.Add("Triggers", new { "0": triggers[0] });
+        lm.Log("Game", resultsDictionary);*/
+    }
+
+    public void OnDestroy()
+    {
+        // TODO: not sure when the lm does this by itself. This should probably be removed when done with testing!
+        lm.SaveAllLogs();
     }
 
     // Update is called once per frame
@@ -47,6 +78,7 @@ public class RecordToArray : MonoBehaviour
     {
         if (ignoreInputWindow || gameData.inputWindow == InputWindowState.Open)
         {
+            // save data point to memory for processing
             dataArray.Add(value);
         }
     }
@@ -69,4 +101,4 @@ public class RecordToArray : MonoBehaviour
 
     }*/
 
-}
+    }
