@@ -7,7 +7,7 @@ public class CameraFollowScript : MonoBehaviour
     // Start is called before the first frame update
     [SerializeField]
     public GameObject objectToFollow;
-    private Vector3 followOffset;
+    public Vector3 followOffset;
 
     void Start()
     {

@@ -8,6 +8,7 @@ public class PlayerMovementScript : MonoBehaviour
     public bool isPointGuyOn = true;
     public RecordToArray recordToArrayRef;
     public GameObject signalHand, dontmoveText, moveText, victoryText, scoreText,relaxText, pointGuy, bgGroup;
+    public CameraFollowScript cameraFollowScript;
     public Animator scoreMultiplierAnimator;
     public Text pointGuyText;
 
@@ -18,8 +19,9 @@ public class PlayerMovementScript : MonoBehaviour
 
     public ParticleSystem easyPart;
     public ParticleSystem hardPart;
+    public ParticleSystem landingPart;
 
-    public AudioClip trickSound1;
+    public AudioClip trickSound1, landingSound, badLandingSound;
     public  AudioSource audioSource;
 
     public GameObject playerAvatar;
@@ -36,8 +38,6 @@ public class PlayerMovementScript : MonoBehaviour
     private int runCounter = -1;
     private float scoreCounter;
     private bool isFirstRound;
-
-    
     // Start is called before the first frame update
     void Start()
     {
@@ -161,7 +161,7 @@ public class PlayerMovementScript : MonoBehaviour
                 }
                 float elapsedAnimationTime = (Time.time-timer)*animator.speed;
                 animator.SetBool("CanTrick",false);
-                if((elapsedAnimationTime>=0.3f)) {
+                if((elapsedAnimationTime>=0.55f)) {
                     animator.SetBool("isLanding",true);
                     animator.SetBool("wrongLanding",!taskResults[3]);
                 } else if((elapsedAnimationTime>=0.2f)) {
@@ -214,7 +214,6 @@ public class PlayerMovementScript : MonoBehaviour
 
     float calculateScore(bool[] results) {
         float score = 1f;
-        Debug.Log(results);
         if(results[0]) score+=2f;
         if(results[1]) score+=3f;
         if(results[2]) score+=4f;
@@ -234,5 +233,15 @@ public class PlayerMovementScript : MonoBehaviour
         easyPart.Play(true);
         hardPart.Play(true);
         audioSource.PlayOneShot(trickSound1);
+    }
+
+    void playLanding()
+    {
+        if(taskResults[3]) {
+            landingPart.Play(true);
+            audioSource.PlayOneShot(landingSound,0.5f);
+        } else {
+            audioSource.PlayOneShot(badLandingSound);
+        }
     }
 }
