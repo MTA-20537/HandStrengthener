@@ -68,6 +68,7 @@ public class SignalProcessor : MonoBehaviour
     private bool[] result;
     private GameManager gm;
     private InputWindowState previousInputWindowState;
+    private LoggingManager lm;
 
     [Serializable]
     public class OnSignalProcessedOnce : UnityEvent<bool[]> { }
@@ -84,6 +85,7 @@ public class SignalProcessor : MonoBehaviour
         this.thresholdRatio = this.inputThreshold / this.benchmarkInputThreshold;
 
         gm = GameObject.Find("GameManager").GetComponent<GameManager>();
+        lm = GameObject.Find("LoggingManager").GetComponent<LoggingManager>();
         previousInputWindowState = InputWindowState.Closed;
     }
 
@@ -184,8 +186,11 @@ public class SignalProcessor : MonoBehaviour
             if (newOptimalTriggerRatio > 1.5 || newOptimalTriggerRatio < 0.6)
             {
                 float newThresholdRatio = (this.thresholdRatio / newOptimalTriggerRatio + this.thresholdRatio) / 2;
-                Debug.LogWarning("New adaptive threshold set (major correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)": " (harder)"));
+                Debug.Log("New adaptive threshold set (major correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)": " (harder)"));
                 this.thresholdRatio = newThresholdRatio;
+
+                // TODO: log adative threshold change
+                lm.Log("Game", "AdaptiveTriggerMajorChange", "" + Mathf.Round(this.thresholdRatio * 100));
             }
             else if (this.thresholdHistory.Count >= 1)
             {
@@ -194,8 +199,11 @@ public class SignalProcessor : MonoBehaviour
                 float newThresholdRatio = ((totalThresholdValues / this.thresholdHistory.Count) + this.thresholdHistory[this.thresholdHistory.Count - 1]) / 2;
                 if (Mathf.Abs(this.thresholdRatio - newThresholdRatio) > 0.1)
                 {
-                    Debug.LogWarning("New adaptive threshold set (minor correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)" : " (harder)"));
+                    Debug.Log("New adaptive threshold set (minor correction): " + this.thresholdRatio + " -> " + newThresholdRatio + (this.thresholdRatio - newThresholdRatio > 0 ? " (easier)" : " (harder)"));
                     this.thresholdRatio = newThresholdRatio;
+
+                    // TODO: log adative threshold change
+                    lm.Log("Game", "AdaptiveTriggerMinorChange", "" + Mathf.Round(this.thresholdRatio * 100));
                 }
             }
 
