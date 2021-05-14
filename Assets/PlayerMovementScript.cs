@@ -100,6 +100,7 @@ public class PlayerMovementScript : MonoBehaviour
                 break;
             case 1: //Cue phase
                 //Debug.Log("Cue Phase");
+                // VICTORY
                 if(runCounter<maxRuns) {
                     animator.SetTrigger("run");
 
@@ -108,7 +109,9 @@ public class PlayerMovementScript : MonoBehaviour
                 } else {
                     IsNotReady();
                     victoryText.SetActive(true);
-                    scoreText.SetActive(true);
+                    scoreText.SetActive(isPointGuyOn);
+                    relaxText.SetActive(false);
+                    animator.SetTrigger("victory");
                     scoreText.GetComponent<Text>().text = "Score: " + (Mathf.Round((scoreCounter/maxRuns) * 100)) / 100.0;
                 }
                 
@@ -117,8 +120,7 @@ public class PlayerMovementScript : MonoBehaviour
                 //Debug.Log("Prep Phase");
                 if(isFirstRound) {
                     isFirstRound = false;
-                    if(isPointGuyOn)
-                        pointGuy.SetActive(true);
+                    pointGuy.SetActive(isPointGuyOn);
                 }
                 relaxText.SetActive(false);
                 dontmoveText.SetActive(true);
@@ -132,7 +134,7 @@ public class PlayerMovementScript : MonoBehaviour
                 //Debug.Log("Task Phase");
                 if(prevSourceIndex!=sourceNodeIndex) {
                     animator.SetTrigger("rise");
-                    pointGuy.SetActive(true);
+                    pointGuy.SetActive(isPointGuyOn);
                     MoveNode(pointGuy);
                     MoveNode(bgGroup);
                 }
@@ -237,11 +239,14 @@ public class PlayerMovementScript : MonoBehaviour
 
     void playLanding()
     {
-        if(taskResults[3]) {
-            landingPart.Play(true);
-            audioSource.PlayOneShot(landingSound,0.5f);
-        } else {
-            audioSource.PlayOneShot(badLandingSound);
+        if(!isFirstRound) {
+            if(taskResults[3]) {
+                landingPart.Play(true);
+                audioSource.PlayOneShot(landingSound,0.5f);
+            } else {
+                audioSource.PlayOneShot(badLandingSound);
+            }
         }
+        
     }
 }
